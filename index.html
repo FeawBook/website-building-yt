@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookDopes — AI Solutions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            void: '#0A0A0E',
+            iris: '#5E6AD2',
+            teal: '#3CB4A0',
+            lavender: '#A082FF',
+            surface: '#101016',
+            muted: '#46465A',
+            frost: '#DCDEE8',
+            ash: '#6E738C',
+          },
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            body: ['Inter', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { background: #0A0A0E; color: #DCDEE8; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+    /* CJK / Thai font overrides */
+    [lang="zh"] body, [lang="zh"] .font-body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
+    [lang="zh"] .font-display { font-family: 'Noto Sans SC', 'Space Grotesk', sans-serif; }
+    [lang="th"] body, [lang="th"] .font-body { font-family: 'Noto Sans Thai', 'Inter', sans-serif; }
+    [lang="th"] .font-display { font-family: 'Noto Sans Thai', 'Space Grotesk', sans-serif; }
+
+    /* Noise texture overlay */
+    .noise::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 128px 128px;
+    }
+
+    /* Grid background */
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(94,106,210,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(94,106,210,0.04) 1px, transparent 1px);
+      background-size: 64px 64px;
+    }
+
+    .hex-glow { filter: drop-shadow(0 0 20px rgba(94,106,210,0.3)); }
+    .glow-iris { box-shadow: 0 0 40px rgba(94,106,210,0.15), 0 0 80px rgba(94,106,210,0.05); }
+    .glow-teal { box-shadow: 0 0 40px rgba(60,180,160,0.12), 0 0 80px rgba(60,180,160,0.04); }
+    .glow-lavender { box-shadow: 0 0 40px rgba(160,130,255,0.12), 0 0 80px rgba(160,130,255,0.04); }
+    .text-glow-iris { text-shadow: 0 0 30px rgba(94,106,210,0.4); }
+    .text-glow-teal { text-shadow: 0 0 30px rgba(60,180,160,0.4); }
+
+    .label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .card-hover {
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 40px rgba(94,106,210,0.12), 0 0 0 1px rgba(94,106,210,0.15);
+    }
+
+    .btn-primary {
+      background: #5E6AD2;
+      color: #DCDEE8;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, box-shadow 0.3s ease;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 24px rgba(94,106,210,0.3); }
+    .btn-primary:active { transform: translateY(0); opacity: 0.8; }
+    .btn-primary:focus-visible { outline: 2px solid #A082FF; outline-offset: 2px; }
+
+    .btn-ghost {
+      border: 1px solid #46465A;
+      color: #DCDEE8;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.3s ease;
+    }
+    .btn-ghost:hover { border-color: #5E6AD2; transform: translateY(-1px); box-shadow: 0 4px 24px rgba(94,106,210,0.1); }
+    .btn-ghost:active { transform: translateY(0); }
+    .btn-ghost:focus-visible { outline: 2px solid #A082FF; outline-offset: 2px; }
+
+    .nav-link { transition: color 0.2s ease; }
+    .nav-link:hover { color: #DCDEE8; }
+    .nav-link:focus-visible { outline: 2px solid #A082FF; outline-offset: 2px; }
+
+    .hero-glow {
+      position: absolute; width: 800px; height: 800px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(94,106,210,0.08) 0%, rgba(160,130,255,0.03) 40%, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.1; transform: scale(1.08); }
+    }
+    .logo-pulse { animation: pulse-ring 4s ease-in-out infinite; }
+
+    .hex-line { stroke-dasharray: 8 4; animation: dash 20s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: -240; } }
+
+    .stat-value {
+      background: linear-gradient(135deg, #5E6AD2, #A082FF);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .fade-up {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    .feature-icon {
+      width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+      border-radius: 12px; background: rgba(94,106,210,0.08); border: 1px solid rgba(94,106,210,0.15);
+    }
+
+    /* Language switcher */
+    .lang-switcher {
+      position: relative;
+    }
+    .lang-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 8px;
+      border: 1px solid rgba(70,70,90,0.4);
+      background: rgba(16,16,22,0.6);
+      color: #6E738C; font-size: 0.75rem; font-weight: 500;
+      letter-spacing: 0.08em; cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .lang-btn:hover { border-color: #5E6AD2; color: #DCDEE8; }
+    .lang-btn:focus-visible { outline: 2px solid #A082FF; outline-offset: 2px; }
+    .lang-btn svg { transition: transform 0.2s ease; }
+    .lang-switcher.open .lang-btn svg { transform: rotate(180deg); }
+
+    .lang-dropdown {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      min-width: 160px; padding: 4px;
+      background: #101016; border: 1px solid rgba(70,70,90,0.4);
+      border-radius: 12px; opacity: 0; visibility: hidden;
+      transform: translateY(-4px);
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      z-index: 100;
+    }
+    .lang-switcher.open .lang-dropdown {
+      opacity: 1; visibility: visible; transform: translateY(0);
+    }
+    .lang-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 8px;
+      color: #6E738C; font-size: 0.8125rem; cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .lang-option:hover { background: rgba(94,106,210,0.06); color: #DCDEE8; }
+    .lang-option.active { color: #5E6AD2; }
+    .lang-option .lang-flag { font-size: 1.1rem; }
+    .lang-option .lang-check { margin-left: auto; opacity: 0; color: #5E6AD2; }
+    .lang-option.active .lang-check { opacity: 1; }
+  </style>
+</head>
+<body class="noise grid-bg">
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50" style="background: rgba(10,10,14,0.8); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(70,70,90,0.3);">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-3 group" aria-label="BookDopes Home">
+        <img src="brand_assets/bookdopes_icon_1024x1024.png" alt="BookDopes" class="w-8 h-8" style="transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);">
+        <span class="font-display font-semibold text-frost tracking-wide text-sm" style="letter-spacing: 0.15em;">BOOKDOPES</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#solutions" class="nav-link label text-ash" data-i18n="nav_solutions">Solutions</a>
+        <a href="#features" class="nav-link label text-ash" data-i18n="nav_features">Features</a>
+        <a href="#process" class="nav-link label text-ash" data-i18n="nav_process">Process</a>
+        <a href="#contact" class="nav-link label text-ash" data-i18n="nav_contact">Contact</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Language Switcher -->
+        <div class="lang-switcher" id="langSwitcher">
+          <button class="lang-btn" id="langBtn" aria-label="Change language">
+            <span id="langCurrent">EN</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 4.5L6 7.5L9 4.5"/>
+            </svg>
+          </button>
+          <div class="lang-dropdown" id="langDropdown">
+            <div class="lang-option active" data-lang="en">
+              <span class="lang-flag">EN</span>
+              <span>English</span>
+              <span class="lang-check">&#10003;</span>
+            </div>
+            <div class="lang-option" data-lang="th">
+              <span class="lang-flag">TH</span>
+              <span>ไทย</span>
+              <span class="lang-check">&#10003;</span>
+            </div>
+            <div class="lang-option" data-lang="zh">
+              <span class="lang-flag">ZH</span>
+              <span>中文</span>
+              <span class="lang-check">&#10003;</span>
+            </div>
+          </div>
+        </div>
+        <a href="#contact" class="btn-primary px-5 py-2 rounded-lg font-display text-xs font-medium" style="letter-spacing: 0.1em;" data-i18n="nav_cta">GET STARTED</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
+    <div class="hero-glow"></div>
+    <svg class="absolute inset-0 w-full h-full" style="opacity: 0.06;">
+      <line x1="10%" y1="20%" x2="30%" y2="10%" class="hex-line" stroke="#5E6AD2" stroke-width="1"/>
+      <line x1="70%" y1="15%" x2="90%" y2="25%" class="hex-line" stroke="#3CB4A0" stroke-width="1"/>
+      <line x1="80%" y1="70%" x2="95%" y2="85%" class="hex-line" stroke="#5E6AD2" stroke-width="1"/>
+      <line x1="5%" y1="75%" x2="20%" y2="90%" class="hex-line" stroke="#A082FF" stroke-width="1"/>
+      <circle cx="10%" cy="20%" r="3" fill="#5E6AD2" opacity="0.4"/>
+      <circle cx="90%" cy="25%" r="3" fill="#3CB4A0" opacity="0.4"/>
+      <circle cx="95%" cy="85%" r="3" fill="#5E6AD2" opacity="0.4"/>
+      <circle cx="5%" cy="75%" r="3" fill="#A082FF" opacity="0.4"/>
+    </svg>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
+      <div class="relative inline-block mb-10">
+        <div class="absolute inset-0 rounded-full logo-pulse" style="background: radial-gradient(circle, rgba(94,106,210,0.15), transparent 70%); transform: scale(2.5);"></div>
+        <img src="brand_assets/bookdopes_icon_1024x1024.png" alt="" class="relative w-20 h-20 hex-glow">
+      </div>
+
+      <p class="label text-iris mb-6 text-glow-iris" data-i18n="hero_label">AI-Powered Intelligence</p>
+
+      <h1 class="font-display font-bold text-frost mb-6" style="font-size: clamp(2.5rem, 6vw, 4.5rem); letter-spacing: -0.03em; line-height: 1.05;" data-i18n="hero_title" data-i18n-html="true">
+        Intelligence That<br><span class="text-iris">Transforms</span> Business
+      </h1>
+
+      <p class="font-body text-ash max-w-xl mx-auto mb-10" style="font-size: 1.125rem; line-height: 1.7;" data-i18n="hero_desc">
+        We architect AI systems that don't just automate — they understand. Deep learning solutions built with precision for enterprises ready to evolve.
+      </p>
+
+      <div class="flex items-center justify-center gap-4 flex-wrap">
+        <a href="#contact" class="btn-primary px-8 py-3.5 rounded-xl font-display text-sm font-medium" style="letter-spacing: 0.08em;" data-i18n="hero_cta1">START YOUR PROJECT</a>
+        <a href="#solutions" class="btn-ghost px-8 py-3.5 rounded-xl font-display text-sm font-medium" style="letter-spacing: 0.08em;" data-i18n="hero_cta2">EXPLORE SOLUTIONS</a>
+      </div>
+
+      <div class="mt-20 grid grid-cols-3 gap-8 max-w-lg mx-auto">
+        <div>
+          <div class="stat-value font-display font-bold text-3xl">98%</div>
+          <div class="label text-ash mt-1" style="font-size: 0.625rem;" data-i18n="stat_accuracy">Accuracy Rate</div>
+        </div>
+        <div>
+          <div class="stat-value font-display font-bold text-3xl">150+</div>
+          <div class="label text-ash mt-1" style="font-size: 0.625rem;" data-i18n="stat_models">Models Deployed</div>
+        </div>
+        <div>
+          <div class="stat-value font-display font-bold text-3xl">40ms</div>
+          <div class="label text-ash mt-1" style="font-size: 0.625rem;" data-i18n="stat_response">Avg Response</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+      <span class="label text-muted" style="font-size: 0.5rem;" data-i18n="scroll">SCROLL</span>
+      <div class="w-px h-8" style="background: linear-gradient(to bottom, #46465A, transparent);"></div>
+    </div>
+  </section>
+
+  <!-- Solutions Section -->
+  <section id="solutions" class="py-32 relative">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-20 fade-up">
+        <p class="label text-teal mb-4 text-glow-teal" data-i18n="solutions_label">What We Build</p>
+        <h2 class="font-display font-bold text-frost text-4xl md:text-5xl" style="letter-spacing: -0.03em;" data-i18n="solutions_title" data-i18n-html="true">
+          AI Solutions Engineered<br>for Real Impact
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <!-- Card 1 -->
+        <div class="fade-up card-hover rounded-2xl p-8 relative overflow-hidden" style="background: #101016; border: 1px solid rgba(70,70,90,0.4);">
+          <div class="absolute top-0 right-0 w-32 h-32" style="background: radial-gradient(circle at top right, rgba(94,106,210,0.06), transparent 70%);"></div>
+          <div class="feature-icon mb-6">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5E6AD2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-semibold text-frost text-lg mb-3" style="letter-spacing: -0.01em;" data-i18n="card1_title">Predictive Analytics</h3>
+          <p class="font-body text-ash text-sm" style="line-height: 1.7;" data-i18n="card1_desc">Deep learning models that forecast trends, detect anomalies, and surface insights buried in petabytes of enterprise data.</p>
+          <div class="mt-6 pt-6" style="border-top: 1px solid rgba(70,70,90,0.3);">
+            <span class="label text-iris" style="font-size: 0.625rem;" data-i18n="learn_more">LEARN MORE &rarr;</span>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="fade-up card-hover rounded-2xl p-8 relative overflow-hidden" style="background: #101016; border: 1px solid rgba(70,70,90,0.4); transition-delay: 0.1s;">
+          <div class="absolute top-0 right-0 w-32 h-32" style="background: radial-gradient(circle at top right, rgba(60,180,160,0.06), transparent 70%);"></div>
+          <div class="feature-icon mb-6" style="background: rgba(60,180,160,0.08); border-color: rgba(60,180,160,0.15);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3CB4A0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9l2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9l2.83-2.83"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-semibold text-frost text-lg mb-3" style="letter-spacing: -0.01em;" data-i18n="card2_title">Computer Vision</h3>
+          <p class="font-body text-ash text-sm" style="line-height: 1.7;" data-i18n="card2_desc">Production-grade vision systems for quality inspection, document processing, and real-time object detection at scale.</p>
+          <div class="mt-6 pt-6" style="border-top: 1px solid rgba(70,70,90,0.3);">
+            <span class="label text-teal" style="font-size: 0.625rem;" data-i18n="learn_more">LEARN MORE &rarr;</span>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="fade-up card-hover rounded-2xl p-8 relative overflow-hidden" style="background: #101016; border: 1px solid rgba(70,70,90,0.4); transition-delay: 0.2s;">
+          <div class="absolute top-0 right-0 w-32 h-32" style="background: radial-gradient(circle at top right, rgba(160,130,255,0.06), transparent 70%);"></div>
+          <div class="feature-icon mb-6" style="background: rgba(160,130,255,0.08); border-color: rgba(160,130,255,0.15);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A082FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-semibold text-frost text-lg mb-3" style="letter-spacing: -0.01em;" data-i18n="card3_title">Natural Language AI</h3>
+          <p class="font-body text-ash text-sm" style="line-height: 1.7;" data-i18n="card3_desc">Custom LLM pipelines, intelligent assistants, and semantic search systems tuned for your domain and data.</p>
+          <div class="mt-6 pt-6" style="border-top: 1px solid rgba(70,70,90,0.3);">
+            <span class="label text-lavender" style="font-size: 0.625rem;" data-i18n="learn_more">LEARN MORE &rarr;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="py-32 relative">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="grid md:grid-cols-2 gap-16 items-center">
+        <div class="fade-up">
+          <p class="label text-iris mb-4 text-glow-iris" data-i18n="features_label">Why BookDopes</p>
+          <h2 class="font-display font-bold text-frost text-3xl md:text-4xl mb-6" style="letter-spacing: -0.03em; line-height: 1.1;" data-i18n="features_title" data-i18n-html="true">
+            Precision-Built AI<br>for Complex Problems
+          </h2>
+          <p class="font-body text-ash mb-10" style="line-height: 1.7;" data-i18n="features_desc">
+            Every system we build follows the same principle: intelligence should be invisible, reliable, and precise. We don't ship demos — we deploy infrastructure.
+          </p>
+
+          <div class="space-y-6">
+            <div class="flex gap-4">
+              <div class="w-1 rounded-full flex-shrink-0" style="background: linear-gradient(to bottom, #5E6AD2, transparent);"></div>
+              <div>
+                <h4 class="font-display font-medium text-frost text-sm mb-1" data-i18n="feat1_title">Enterprise Architecture</h4>
+                <p class="font-body text-ash text-sm" style="line-height: 1.7;" data-i18n="feat1_desc">Distributed systems designed for five-nines uptime with graceful degradation and auto-scaling.</p>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="w-1 rounded-full flex-shrink-0" style="background: linear-gradient(to bottom, #3CB4A0, transparent);"></div>
+              <div>
+                <h4 class="font-display font-medium text-frost text-sm mb-1" data-i18n="feat2_title">Data Privacy First</h4>
+                <p class="font-body text-ash text-sm" style="line-height: 1.7;" data-i18n="feat2_desc">SOC 2 compliant pipelines with on-premise deployment options. Your data never leaves your perimeter.</p>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="w-1 rounded-full flex-shrink-0" style="background: linear-gradient(to bottom, #A082FF, transparent);"></div>
+              <div>
+                <h4 class="font-display font-medium text-frost text-sm mb-1" data-i18n="feat3_title">Continuous Learning</h4>
+                <p class="font-body text-ash text-sm" style="line-height: 1.7;" data-i18n="feat3_desc">Models that improve with every interaction through automated retraining pipelines and drift detection.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fade-up relative flex items-center justify-center">
+          <div class="relative">
+            <svg width="400" height="400" viewBox="0 0 400 400" fill="none" class="w-full max-w-sm mx-auto">
+              <polygon points="200,40 340,110 340,250 200,320 60,250 60,110" stroke="#46465A" stroke-width="1" fill="none" opacity="0.3"/>
+              <polygon points="200,80 300,130 300,230 200,280 100,230 100,130" stroke="#5E6AD2" stroke-width="1" fill="none" opacity="0.5"/>
+              <polygon points="200,120 260,150 260,210 200,240 140,210 140,150" stroke="#3CB4A0" stroke-width="1.5" fill="none" opacity="0.6"/>
+              <circle cx="200" cy="180" r="24" stroke="#5E6AD2" stroke-width="2" fill="rgba(94,106,210,0.1)"/>
+              <circle cx="200" cy="180" r="8" fill="#A082FF" opacity="0.8"/>
+              <line x1="200" y1="40" x2="200" y2="80" stroke="#46465A" stroke-width="0.5" stroke-dasharray="3 3"/>
+              <line x1="340" y1="110" x2="300" y2="130" stroke="#46465A" stroke-width="0.5" stroke-dasharray="3 3"/>
+              <line x1="340" y1="250" x2="300" y2="230" stroke="#46465A" stroke-width="0.5" stroke-dasharray="3 3"/>
+              <line x1="200" y1="320" x2="200" y2="280" stroke="#46465A" stroke-width="0.5" stroke-dasharray="3 3"/>
+              <line x1="60" y1="250" x2="100" y2="230" stroke="#46465A" stroke-width="0.5" stroke-dasharray="3 3"/>
+              <line x1="60" y1="110" x2="100" y2="130" stroke="#46465A" stroke-width="0.5" stroke-dasharray="3 3"/>
+              <circle cx="200" cy="40" r="4" fill="#3CB4A0" opacity="0.6"/>
+              <circle cx="340" cy="110" r="4" fill="#5E6AD2" opacity="0.6"/>
+              <circle cx="340" cy="250" r="4" fill="#3CB4A0" opacity="0.6"/>
+              <circle cx="200" cy="320" r="4" fill="#5E6AD2" opacity="0.6"/>
+              <circle cx="60" cy="250" r="4" fill="#A082FF" opacity="0.6"/>
+              <circle cx="60" cy="110" r="4" fill="#3CB4A0" opacity="0.6"/>
+              <text x="200" y="370" text-anchor="middle" fill="#46465A" font-family="Space Grotesk" font-size="10" letter-spacing="3" font-weight="500" data-i18n-svg="hex_label">NEURAL ARCHITECTURE</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Process Section -->
+  <section id="process" class="py-32 relative">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-20 fade-up">
+        <p class="label text-lavender mb-4" data-i18n="process_label">Our Process</p>
+        <h2 class="font-display font-bold text-frost text-4xl md:text-5xl" style="letter-spacing: -0.03em;" data-i18n="process_title">
+          From Data to Deployment
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-4 gap-6">
+        <div class="fade-up text-center">
+          <div class="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6" style="background: rgba(94,106,210,0.06); border: 1px solid rgba(94,106,210,0.12);">
+            <span class="font-display font-bold text-iris text-xl">01</span>
+          </div>
+          <h4 class="font-display font-medium text-frost text-sm mb-2" data-i18n="step1_title">Discovery</h4>
+          <p class="font-body text-ash text-xs" style="line-height: 1.7;" data-i18n="step1_desc">We audit your data landscape, map workflows, and identify high-impact AI opportunities.</p>
+        </div>
+        <div class="fade-up text-center" style="transition-delay: 0.08s;">
+          <div class="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6" style="background: rgba(60,180,160,0.06); border: 1px solid rgba(60,180,160,0.12);">
+            <span class="font-display font-bold text-teal text-xl">02</span>
+          </div>
+          <h4 class="font-display font-medium text-frost text-sm mb-2" data-i18n="step2_title">Architecture</h4>
+          <p class="font-body text-ash text-xs" style="line-height: 1.7;" data-i18n="step2_desc">Custom model design with infrastructure planning for scale, latency, and cost targets.</p>
+        </div>
+        <div class="fade-up text-center" style="transition-delay: 0.16s;">
+          <div class="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6" style="background: rgba(160,130,255,0.06); border: 1px solid rgba(160,130,255,0.12);">
+            <span class="font-display font-bold text-lavender text-xl">03</span>
+          </div>
+          <h4 class="font-display font-medium text-frost text-sm mb-2" data-i18n="step3_title">Development</h4>
+          <p class="font-body text-ash text-xs" style="line-height: 1.7;" data-i18n="step3_desc">Iterative training, evaluation, and optimization with weekly progress reviews.</p>
+        </div>
+        <div class="fade-up text-center" style="transition-delay: 0.24s;">
+          <div class="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6" style="background: rgba(94,106,210,0.06); border: 1px solid rgba(94,106,210,0.12);">
+            <span class="font-display font-bold text-iris text-xl">04</span>
+          </div>
+          <h4 class="font-display font-medium text-frost text-sm mb-2" data-i18n="step4_title">Deployment</h4>
+          <p class="font-body text-ash text-xs" style="line-height: 1.7;" data-i18n="step4_desc">Production rollout with monitoring dashboards, alerting, and continuous model improvement.</p>
+        </div>
+      </div>
+
+      <div class="hidden md:block mt-[-88px] mb-12 mx-auto max-w-3xl px-16 relative" style="height: 1px;">
+        <div class="w-full h-px" style="background: linear-gradient(to right, #5E6AD2, #3CB4A0, #A082FF, #5E6AD2); opacity: 0.2;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA / Contact Section -->
+  <section id="contact" class="py-32 relative">
+    <div class="max-w-3xl mx-auto px-6 text-center fade-up">
+      <div class="rounded-3xl p-12 md:p-16 relative overflow-hidden" style="background: #101016; border: 1px solid rgba(70,70,90,0.3);">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96" style="background: radial-gradient(circle, rgba(94,106,210,0.08), transparent 70%); pointer-events: none;"></div>
+        <div class="relative z-10">
+          <img src="brand_assets/bookdopes_icon_1024x1024.png" alt="" class="w-12 h-12 mx-auto mb-8 hex-glow">
+          <p class="label text-iris mb-4" data-i18n="cta_label">Ready to Begin?</p>
+          <h2 class="font-display font-bold text-frost text-3xl md:text-4xl mb-4" style="letter-spacing: -0.03em; line-height: 1.1;" data-i18n="cta_title" data-i18n-html="true">
+            Let's Build Something<br>Intelligent Together
+          </h2>
+          <p class="font-body text-ash mb-10 max-w-md mx-auto" style="line-height: 1.7;" data-i18n="cta_desc">
+            Tell us about your challenge. We'll respond within 24 hours with an initial assessment and proposed approach.
+          </p>
+          <div class="flex items-center justify-center gap-4 flex-wrap">
+            <a href="mailto:hello@bookdopes.com" class="btn-primary px-8 py-3.5 rounded-xl font-display text-sm font-medium inline-block" style="letter-spacing: 0.08em;" data-i18n="cta_btn1">CONTACT US</a>
+            <a href="#" class="btn-ghost px-8 py-3.5 rounded-xl font-display text-sm font-medium inline-block" style="letter-spacing: 0.08em;" data-i18n="cta_btn2">BOOK A CALL</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12" style="border-top: 1px solid rgba(70,70,90,0.2);">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-3">
+          <img src="brand_assets/bookdopes_icon_1024x1024.png" alt="BookDopes" class="w-6 h-6">
+          <span class="font-display text-ash text-xs" style="letter-spacing: 0.15em;">BOOKDOPES</span>
+        </div>
+        <div class="flex items-center gap-8">
+          <a href="#" class="nav-link label text-ash" style="font-size: 0.625rem;" data-i18n="footer_privacy">Privacy</a>
+          <a href="#" class="nav-link label text-ash" style="font-size: 0.625rem;" data-i18n="footer_terms">Terms</a>
+          <a href="#" class="nav-link label text-ash" style="font-size: 0.625rem;">LinkedIn</a>
+          <a href="#" class="nav-link label text-ash" style="font-size: 0.625rem;">GitHub</a>
+        </div>
+        <p class="font-body text-muted text-xs" data-i18n="footer_copy">&copy; 2026 BookDopes. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ── Translation data ──
+    const translations = {
+      en: {
+        nav_solutions: 'Solutions',
+        nav_features: 'Features',
+        nav_process: 'Process',
+        nav_contact: 'Contact',
+        nav_cta: 'GET STARTED',
+        hero_label: 'AI-Powered Intelligence',
+        hero_title: 'Intelligence That<br><span class="text-iris">Transforms</span> Business',
+        hero_desc: "We architect AI systems that don't just automate — they understand. Deep learning solutions built with precision for enterprises ready to evolve.",
+        hero_cta1: 'START YOUR PROJECT',
+        hero_cta2: 'EXPLORE SOLUTIONS',
+        stat_accuracy: 'Accuracy Rate',
+        stat_models: 'Models Deployed',
+        stat_response: 'Avg Response',
+        scroll: 'SCROLL',
+        solutions_label: 'What We Build',
+        solutions_title: 'AI Solutions Engineered<br>for Real Impact',
+        card1_title: 'Predictive Analytics',
+        card1_desc: 'Deep learning models that forecast trends, detect anomalies, and surface insights buried in petabytes of enterprise data.',
+        card2_title: 'Computer Vision',
+        card2_desc: 'Production-grade vision systems for quality inspection, document processing, and real-time object detection at scale.',
+        card3_title: 'Natural Language AI',
+        card3_desc: 'Custom LLM pipelines, intelligent assistants, and semantic search systems tuned for your domain and data.',
+        learn_more: 'LEARN MORE &rarr;',
+        features_label: 'Why BookDopes',
+        features_title: 'Precision-Built AI<br>for Complex Problems',
+        features_desc: "Every system we build follows the same principle: intelligence should be invisible, reliable, and precise. We don't ship demos — we deploy infrastructure.",
+        feat1_title: 'Enterprise Architecture',
+        feat1_desc: 'Distributed systems designed for five-nines uptime with graceful degradation and auto-scaling.',
+        feat2_title: 'Data Privacy First',
+        feat2_desc: 'SOC 2 compliant pipelines with on-premise deployment options. Your data never leaves your perimeter.',
+        feat3_title: 'Continuous Learning',
+        feat3_desc: 'Models that improve with every interaction through automated retraining pipelines and drift detection.',
+        hex_label: 'NEURAL ARCHITECTURE',
+        process_label: 'Our Process',
+        process_title: 'From Data to Deployment',
+        step1_title: 'Discovery',
+        step1_desc: 'We audit your data landscape, map workflows, and identify high-impact AI opportunities.',
+        step2_title: 'Architecture',
+        step2_desc: 'Custom model design with infrastructure planning for scale, latency, and cost targets.',
+        step3_title: 'Development',
+        step3_desc: 'Iterative training, evaluation, and optimization with weekly progress reviews.',
+        step4_title: 'Deployment',
+        step4_desc: 'Production rollout with monitoring dashboards, alerting, and continuous model improvement.',
+        cta_label: 'Ready to Begin?',
+        cta_title: "Let's Build Something<br>Intelligent Together",
+        cta_desc: "Tell us about your challenge. We'll respond within 24 hours with an initial assessment and proposed approach.",
+        cta_btn1: 'CONTACT US',
+        cta_btn2: 'BOOK A CALL',
+        footer_privacy: 'Privacy',
+        footer_terms: 'Terms',
+        footer_copy: '&copy; 2026 BookDopes. All rights reserved.',
+      },
+
+      th: {
+        nav_solutions: 'โซลูชัน',
+        nav_features: 'คุณสมบัติ',
+        nav_process: 'กระบวนการ',
+        nav_contact: 'ติดต่อเรา',
+        nav_cta: 'เริ่มต้นใช้งาน',
+        hero_label: 'ปัญญาประดิษฐ์ขั้นสูง',
+        hero_title: 'ปัญญาประดิษฐ์ที่<br><span class="text-iris">เปลี่ยนแปลง</span>ธุรกิจ',
+        hero_desc: 'เราออกแบบระบบ AI ที่ไม่เพียงแค่ทำงานอัตโนมัติ — แต่เข้าใจ โซลูชัน Deep Learning ที่สร้างด้วยความแม่นยำสำหรับองค์กรที่พร้อมจะก้าวไปข้างหน้า',
+        hero_cta1: 'เริ่มโปรเจกต์ของคุณ',
+        hero_cta2: 'สำรวจโซลูชัน',
+        stat_accuracy: 'อัตราความแม่นยำ',
+        stat_models: 'โมเดลที่ใช้งาน',
+        stat_response: 'เวลาตอบสนองเฉลี่ย',
+        scroll: 'เลื่อนลง',
+        solutions_label: 'สิ่งที่เราสร้าง',
+        solutions_title: 'โซลูชัน AI ที่ออกแบบ<br>เพื่อผลลัพธ์ที่แท้จริง',
+        card1_title: 'การวิเคราะห์เชิงคาดการณ์',
+        card1_desc: 'โมเดล Deep Learning ที่คาดการณ์แนวโน้ม ตรวจจับความผิดปกติ และค้นพบข้อมูลเชิงลึกจากข้อมูลระดับเพตะไบต์ขององค์กร',
+        card2_title: 'คอมพิวเตอร์วิชัน',
+        card2_desc: 'ระบบวิชันระดับโปรดักชันสำหรับการตรวจสอบคุณภาพ การประมวลผลเอกสาร และการตรวจจับวัตถุแบบเรียลไทม์',
+        card3_title: 'AI ประมวลผลภาษาธรรมชาติ',
+        card3_desc: 'ไปป์ไลน์ LLM แบบกำหนดเอง ผู้ช่วยอัจฉริยะ และระบบค้นหาเชิงความหมายที่ปรับแต่งสำหรับโดเมนและข้อมูลของคุณ',
+        learn_more: 'เรียนรู้เพิ่มเติม &rarr;',
+        features_label: 'ทำไมต้อง BookDopes',
+        features_title: 'AI ที่สร้างด้วยความแม่นยำ<br>สำหรับปัญหาที่ซับซ้อน',
+        features_desc: 'ทุกระบบที่เราสร้างเป็นไปตามหลักการเดียวกัน: ปัญญาประดิษฐ์ควรมองไม่เห็น เชื่อถือได้ และแม่นยำ เราไม่ได้ส่งมอบเดโม — เราติดตั้งโครงสร้างพื้นฐาน',
+        feat1_title: 'สถาปัตยกรรมระดับองค์กร',
+        feat1_desc: 'ระบบกระจายที่ออกแบบมาเพื่อ Uptime 99.999% พร้อมการลดระดับอย่างสง่างามและการปรับขนาดอัตโนมัติ',
+        feat2_title: 'ความเป็นส่วนตัวของข้อมูลมาก่อน',
+        feat2_desc: 'ไปป์ไลน์ที่สอดคล้องกับ SOC 2 พร้อมตัวเลือกการติดตั้งภายในองค์กร ข้อมูลของคุณจะไม่ออกจากขอบเขตของคุณ',
+        feat3_title: 'การเรียนรู้อย่างต่อเนื่อง',
+        feat3_desc: 'โมเดลที่พัฒนาขึ้นทุกครั้งที่มีการโต้ตอบ ผ่านไปป์ไลน์การฝึกซ้ำอัตโนมัติและการตรวจจับการเบี่ยงเบน',
+        hex_label: 'สถาปัตยกรรมนิวรัล',
+        process_label: 'กระบวนการของเรา',
+        process_title: 'จากข้อมูลสู่การใช้งาน',
+        step1_title: 'สำรวจ',
+        step1_desc: 'เราตรวจสอบภูมิทัศน์ข้อมูลของคุณ แมปเวิร์กโฟลว์ และระบุโอกาส AI ที่มีผลกระทบสูง',
+        step2_title: 'สถาปัตยกรรม',
+        step2_desc: 'การออกแบบโมเดลแบบกำหนดเองพร้อมการวางแผนโครงสร้างพื้นฐานสำหรับขนาด ความหน่วง และเป้าหมายต้นทุน',
+        step3_title: 'พัฒนา',
+        step3_desc: 'การฝึก การประเมิน และการปรับแต่งแบบวนซ้ำ พร้อมการทบทวนความคืบหน้ารายสัปดาห์',
+        step4_title: 'ติดตั้ง',
+        step4_desc: 'การเปิดตัวระดับโปรดักชันพร้อมแดชบอร์ดการตรวจสอบ การแจ้งเตือน และการปรับปรุงโมเดลอย่างต่อเนื่อง',
+        cta_label: 'พร้อมที่จะเริ่มต้นหรือยัง?',
+        cta_title: 'มาสร้างสิ่งที่<br>ชาญฉลาดด้วยกัน',
+        cta_desc: 'บอกเราเกี่ยวกับความท้าทายของคุณ เราจะตอบกลับภายใน 24 ชั่วโมง พร้อมการประเมินเบื้องต้นและแนวทางที่เสนอ',
+        cta_btn1: 'ติดต่อเรา',
+        cta_btn2: 'จองสาย',
+        footer_privacy: 'ความเป็นส่วนตัว',
+        footer_terms: 'ข้อกำหนด',
+        footer_copy: '&copy; 2026 BookDopes สงวนลิขสิทธิ์',
+      },
+
+      zh: {
+        nav_solutions: '解决方案',
+        nav_features: '特性',
+        nav_process: '流程',
+        nav_contact: '联系我们',
+        nav_cta: '立即开始',
+        hero_label: 'AI 驱动的智能',
+        hero_title: '智能<span class="text-iris">变革</span><br>商业未来',
+        hero_desc: '我们构建的 AI 系统不仅仅是自动化——它们真正理解。为准备进化的企业精心打造的深度学习解决方案。',
+        hero_cta1: '启动您的项目',
+        hero_cta2: '探索解决方案',
+        stat_accuracy: '准确率',
+        stat_models: '已部署模型',
+        stat_response: '平均响应',
+        scroll: '向下滚动',
+        solutions_label: '我们的产品',
+        solutions_title: '为真正影响力而设计的<br>AI 解决方案',
+        card1_title: '预测分析',
+        card1_desc: '深度学习模型，能够预测趋势、检测异常，并从企业 PB 级数据中发掘洞察。',
+        card2_title: '计算机视觉',
+        card2_desc: '生产级视觉系统，用于质量检测、文档处理和大规模实时目标检测。',
+        card3_title: '自然语言 AI',
+        card3_desc: '定制 LLM 管线、智能助手和语义搜索系统，针对您的领域和数据进行调优。',
+        learn_more: '了解更多 &rarr;',
+        features_label: '为什么选择 BookDopes',
+        features_title: '精密构建的 AI<br>解决复杂问题',
+        features_desc: '我们构建的每个系统都遵循同一原则：智能应当无形、可靠且精准。我们不交付演示——我们部署基础设施。',
+        feat1_title: '企业级架构',
+        feat1_desc: '分布式系统，专为 99.999% 可用性设计，支持优雅降级和自动扩缩容。',
+        feat2_title: '数据隐私优先',
+        feat2_desc: '符合 SOC 2 标准的管线，支持本地部署。您的数据永远不会离开您的边界。',
+        feat3_title: '持续学习',
+        feat3_desc: '通过自动化重训管线和漂移检测，模型在每次交互中不断进化。',
+        hex_label: '神经网络架构',
+        process_label: '我们的流程',
+        process_title: '从数据到部署',
+        step1_title: '探索发现',
+        step1_desc: '我们审计您的数据格局，映射工作流程，并识别高影响力的 AI 机会。',
+        step2_title: '架构设计',
+        step2_desc: '定制模型设计，配合基础设施规划以满足规模、延迟和成本目标。',
+        step3_title: '开发',
+        step3_desc: '迭代训练、评估和优化，每周进行进度评审。',
+        step4_title: '部署上线',
+        step4_desc: '生产环境上线，配备监控面板、告警系统和持续模型优化。',
+        cta_label: '准备好开始了吗？',
+        cta_title: '让我们一起<br>构建智能未来',
+        cta_desc: '告诉我们您的挑战。我们将在 24 小时内回复初步评估和建议方案。',
+        cta_btn1: '联系我们',
+        cta_btn2: '预约通话',
+        footer_privacy: '隐私政策',
+        footer_terms: '服务条款',
+        footer_copy: '&copy; 2026 BookDopes 版权所有',
+      },
+    };
+
+    // ── Language switcher logic ──
+    const switcher = document.getElementById('langSwitcher');
+    const langBtn = document.getElementById('langBtn');
+    const langCurrent = document.getElementById('langCurrent');
+    const dropdown = document.getElementById('langDropdown');
+    const options = document.querySelectorAll('.lang-option');
+
+    let currentLang = localStorage.getItem('bd-lang') || 'en';
+
+    langBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      switcher.classList.toggle('open');
+    });
+
+    document.addEventListener('click', () => {
+      switcher.classList.remove('open');
+    });
+
+    dropdown.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    options.forEach(opt => {
+      opt.addEventListener('click', () => {
+        const lang = opt.dataset.lang;
+        setLanguage(lang);
+        switcher.classList.remove('open');
+      });
+    });
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('bd-lang', lang);
+      document.documentElement.lang = lang;
+
+      // Update switcher button
+      langCurrent.textContent = lang.toUpperCase();
+
+      // Update active state
+      options.forEach(o => {
+        o.classList.toggle('active', o.dataset.lang === lang);
+      });
+
+      // Translate all data-i18n elements
+      const t = translations[lang];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (t[key] !== undefined) {
+          if (el.dataset.i18nHtml === 'true') {
+            el.innerHTML = t[key];
+          } else {
+            el.innerHTML = t[key];
+          }
+        }
+      });
+
+      // Translate SVG text elements
+      document.querySelectorAll('[data-i18n-svg]').forEach(el => {
+        const key = el.dataset.i18nSvg;
+        if (t[key] !== undefined) {
+          el.textContent = t[key];
+        }
+      });
+    }
+
+    // Apply saved language on load
+    setLanguage(currentLang);
+
+    // ── Scroll animation ──
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
