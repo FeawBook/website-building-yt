@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BookDopes — AI Solutions</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -181,6 +182,9 @@
   </style>
 </head>
 <body class="noise grid-bg">
+
+  <!-- Dotted Surface Background -->
+  <div id="dotted-surface" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></div>
 
   <!-- Navigation -->
   <nav class="fixed top-0 left-0 right-0 z-50" style="background: rgba(10,10,14,0.8); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(70,70,90,0.3);">
@@ -742,6 +746,86 @@
     }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
 
     document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+
+  <!-- Dotted Surface Animation -->
+  <script>
+    (function() {
+      const container = document.getElementById('dotted-surface');
+      if (!container) return;
+
+      const SEPARATION = 150;
+      const AMOUNTX = 40;
+      const AMOUNTY = 60;
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0x0a0a0e, 2000, 10000);
+
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
+      camera.position.set(0, 355, 1220);
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x000000, 0);
+      container.appendChild(renderer.domElement);
+
+      const positions = [];
+      const colors = [];
+
+      for (let ix = 0; ix < AMOUNTX; ix++) {
+        for (let iy = 0; iy < AMOUNTY; iy++) {
+          positions.push(
+            ix * SEPARATION - (AMOUNTX * SEPARATION) / 2,
+            0,
+            iy * SEPARATION - (AMOUNTY * SEPARATION) / 2
+          );
+          colors.push(0.39, 0.42, 0.82);
+        }
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 8,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.5,
+        sizeAttenuation: true,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+
+      let count = 0;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const posArr = geometry.attributes.position.array;
+        let i = 0;
+        for (let ix = 0; ix < AMOUNTX; ix++) {
+          for (let iy = 0; iy < AMOUNTY; iy++) {
+            posArr[i * 3 + 1] =
+              Math.sin((ix + count) * 0.3) * 50 +
+              Math.sin((iy + count) * 0.5) * 50;
+            i++;
+          }
+        }
+        geometry.attributes.position.needsUpdate = true;
+        renderer.render(scene, camera);
+        count += 0.1;
+      }
+
+      window.addEventListener('resize', function() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      animate();
+    })();
   </script>
 
 </body>
